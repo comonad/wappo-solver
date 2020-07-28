@@ -143,8 +143,9 @@ directionMonsterToPlayer (Pos mx my) (Pos px py)
 
 evalPlayerSituation, maybeWarpPlayer, runMonsterStep :: (?arena :: Arena) => State -> State
 
-joinMonsters :: Either String (Rank,MonsterState) -> Either String (Rank,MonsterState) -> Either String (Rank,MonsterState)
-joinMonsters (Right(Rank2,_)) (Right(Rank2,_)) = Right (Rank3,WaitRounds 0)
+type Moved = Bool
+joinMonsters :: Either String ((Rank,MonsterState),Moved) -> Either String ((Rank,MonsterState),Moved) -> Either String ((Rank,MonsterState),Moved)
+joinMonsters (Right((Rank2,_),_)) (Right((Rank2,_),_)) = Right ((Rank3,WaitRounds 0),True)
 joinMonsters a b = Left $ "joinMonsters " ++ show a ++ " " ++ show b
 
 runMonsterStep s@State{endOrSituation=Left _} = s
@@ -153,18 +154,18 @@ runMonsterStep s@State{endOrSituation=Right Situation{..},..}
     | not (List.null unknowns) = s{endOrSituation=Left (EUnknown unknowns)}
     | otherwise = runMonsterStep $ s{endOrSituation=Right Situation{monsters=newmonsters,..}}
     where
-        sitting :: [(Pos,(Rank,MonsterState))]
-        sitting = [ x | x@(_,(_,WaitRounds _)) <- Map.toList monsters]
-        moved = [ (newpos,(r,StepsToGo (s-1)))
+        sitting :: [(Pos,((Rank,MonsterState),Moved))]
+        sitting = [ (pos,(rm,False)) | x@(pos,rm@(_,WaitRounds _)) <- Map.toList monsters]
+        moved = [ (newpos,((r,StepsToGo (s-1)),newpos/=oldpos))
                 | (oldpos,(r,StepsToGo s)) <- Map.toList monsters
                 , let newpos = List.head $ [np|(walledStep oldpos->Just np)<-directionMonsterToPlayer oldpos player] ++ [oldpos]
                 ]
         joined = Map.fromListWith joinMonsters $ fmap (fmap Right) $ sitting++moved
         unknowns = intercalate " " [s|Left s <- Map.elems joined]
         newmonsters = Map.mapWithKey triggerMonsterEvent joined
-        triggerMonsterEvent pos (Right (r@Rank2,StepsToGo n)) | HasTrap `Set.member` getField pos = (r,WaitRounds 3)
-        triggerMonsterEvent pos (Right (r,StepsToGo 0)) = (r,WaitRounds 0)
-        triggerMonsterEvent pos (Right rm) = rm
+        triggerMonsterEvent pos (Right ((r@Rank2,StepsToGo n),True)) | HasTrap `Set.member` getField pos = (r,WaitRounds 3)
+        triggerMonsterEvent pos (Right ((r,StepsToGo 0),_)) = (r,WaitRounds 0)
+        triggerMonsterEvent pos (Right (rm,_)) = rm
 
 maybeWarpPlayer s@State{endOrSituation=Left _} = s
 maybeWarpPlayer s = if HasWarp `Set.member` getField player 
@@ -277,9 +278,18 @@ inferno14 = Game
     ," I_X 2  I"
     ,"    p   "
     ]
+inferno15 = Game
+    ["      X "
+    ," _2   LI"
+    ,"    II "
+    ," XI*I _ I"
+    ,"__   _ "
+    ," gI II_* "
+    ,"  2    p "
+    ]
 
 readGame :: IO Arena
-readGame = return $ getArena inferno14
+readGame = return $ getArena inferno15
 
 main :: IO ()
 main = do
