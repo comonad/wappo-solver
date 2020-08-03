@@ -287,9 +287,19 @@ inferno15 = Game
     ," gI II_* "
     ,"  2    p "
     ]
+classic149 = Game
+    [" 2 g_ X  "
+    ," 2_I  p "
+    ,"  I   "
+    ,"   _  "
+    ,"_   _IX"
+    ,"   _  "
+    ,"     X "
+    ,"      "
+    ]
 
 readGame :: IO Arena
-readGame = return $ getArena inferno15
+readGame = return $ getArena classic149
 
 main :: IO ()
 main = do
