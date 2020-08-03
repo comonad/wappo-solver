@@ -13,6 +13,7 @@
 
 module Main where
 
+import Control.Monad
 import Control.Monad.RWS
 
 import Data.Set as Set
@@ -38,20 +39,17 @@ directionMonsterToPlayer (Pos mx my) (Pos px py)
     = [West|px < mx]++[East|mx < px]++[North|my > py]++[South|py > my]
 
 
-evalPlayerMonsterSituation, playerTriggersEvents, runMonsterStep :: (?arena :: Arena) => State -> State
+evalPlayerMonsterSituation, playerTriggersEvents, runMonsterSteps :: (?arena :: Arena) => Situation -> Either EndState Situation
 
 type Moved = Bool
 joinMonsters :: Either String ((Rank,MonsterState),Moved) -> Either String ((Rank,MonsterState),Moved) -> Either String ((Rank,MonsterState),Moved)
 joinMonsters (Right((Rank2,_),_)) (Right((Rank2,_),_)) = Right ((Rank3,WaitRounds 0),True)
 joinMonsters a b = Left $ "joinMonsters " ++ show a ++ " " ++ show b
 
---updateSituation :: (Situation -> Either EndState Situation) -> State -> State
-runMonsterStep = updateSituation runMonsterStep'
-
-runMonsterStep' situation@Situation{..}
+runMonsterSteps situation@Situation{..}
     | List.null moved = Right situation
     | not (List.null unknowns) = Left (EUnknown unknowns)
-    | otherwise = runMonsterStep' $ Situation{monsters=newmonsters,..}
+    | otherwise = runMonsterSteps $ Situation{monsters=newmonsters,..}
     where
         sitting :: [(Pos,((Rank,MonsterState),Moved))]
         sitting = [ (pos,(rm,False)) | x@(pos,rm@(_,WaitRounds _)) <- Map.toList monsters]
@@ -66,8 +64,7 @@ runMonsterStep' situation@Situation{..}
         triggerMonsterEvent pos (Right ((r,StepsToGo 0),_)) = (r,WaitRounds 0)
         triggerMonsterEvent pos (Right (rm,_)) = rm
 
-
-playerTriggersEvents = updateSituation $ \situation@Situation{..} ->
+playerTriggersEvents situation@Situation{..} =
     let fieldContains = Set.member `flip` Arena.getField player
         warpedPlayer = List.head [w|w<-Arena.allWarps,w/=player]
      in List.head $ mconcat
@@ -77,14 +74,22 @@ playerTriggersEvents = updateSituation $ \situation@Situation{..} ->
             , [Right Situation{..}]
             ]
 
-evalPlayerMonsterSituation = updateSituation $ \situation@Situation{..} ->
+evalPlayerMonsterSituation situation@Situation{..} =
     if player `Map.member` monsters then Left ELost else Right situation
 
 runSteps :: (?arena :: Arena) => State -> [State]
-runSteps state = do
-    d<-[minBound..maxBound::Direction]
-    (Just s)<-[playerMoves d state]
-    return $ evalPlayerMonsterSituation . runMonsterStep . evalPlayerMonsterSituation . playerTriggersEvents . evalPlayerMonsterSituation $ s
+runSteps state0 = do
+    d <- [minBound..maxBound::Direction]
+    state1 <- maybeToList $ playerMoves d state0
+    --updateSituation :: (Situation -> Either EndState Situation) -> State -> State
+    return $ (`State.updateSituation` state1) $ foldr1 (>=>)
+        [ evalPlayerMonsterSituation
+        , playerTriggersEvents
+        , evalPlayerMonsterSituation
+        , runMonsterSteps
+        , evalPlayerMonsterSituation
+        ]
+
 
 solveGame :: Arena -> State
 solveGame arena = List.head [s|s@(State {endOrSituation=Left e})<-states, isDesiredEndState e]
