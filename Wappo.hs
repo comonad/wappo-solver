@@ -38,18 +38,20 @@ directionMonsterToPlayer (Pos mx my) (Pos px py)
     = [West|px < mx]++[East|mx < px]++[North|my > py]++[South|py > my]
 
 
-evalPlayerSituation, maybeWarpPlayer, runMonsterStep :: (?arena :: Arena) => State -> State
+evalPlayerMonsterSituation, playerTriggersEvents, runMonsterStep :: (?arena :: Arena) => State -> State
 
 type Moved = Bool
 joinMonsters :: Either String ((Rank,MonsterState),Moved) -> Either String ((Rank,MonsterState),Moved) -> Either String ((Rank,MonsterState),Moved)
 joinMonsters (Right((Rank2,_),_)) (Right((Rank2,_),_)) = Right ((Rank3,WaitRounds 0),True)
 joinMonsters a b = Left $ "joinMonsters " ++ show a ++ " " ++ show b
 
-runMonsterStep s@State{endOrSituation=Left _} = s
-runMonsterStep s@State{endOrSituation=Right Situation{..},..}
-    | List.null moved = s
-    | not (List.null unknowns) = s{endOrSituation=Left (EUnknown unknowns)}
-    | otherwise = runMonsterStep $ s{endOrSituation=Right Situation{monsters=newmonsters,..}}
+--updateSituation :: (Situation -> Either EndState Situation) -> State -> State
+runMonsterStep = updateSituation runMonsterStep'
+
+runMonsterStep' situation@Situation{..}
+    | List.null moved = Right situation
+    | not (List.null unknowns) = Left (EUnknown unknowns)
+    | otherwise = runMonsterStep' $ Situation{monsters=newmonsters,..}
     where
         sitting :: [(Pos,((Rank,MonsterState),Moved))]
         sitting = [ (pos,(rm,False)) | x@(pos,rm@(_,WaitRounds _)) <- Map.toList monsters]
@@ -64,30 +66,25 @@ runMonsterStep s@State{endOrSituation=Right Situation{..},..}
         triggerMonsterEvent pos (Right ((r,StepsToGo 0),_)) = (r,WaitRounds 0)
         triggerMonsterEvent pos (Right (rm,_)) = rm
 
-maybeWarpPlayer s@State{endOrSituation=Left _} = s
-maybeWarpPlayer s = if HasWarp `Set.member` Arena.getField player 
-                    then s{endOrSituation=Right Situation{player=warpedPlayer,..}}
-                    else s
-    where
-        (Right Situation{..}) = endOrSituation s
-        warpedPlayer = List.head [w|w<-Arena.allWarps,w/=player]
 
-evalPlayerSituation s@State{endOrSituation=Left _} = s
-evalPlayerSituation State{..} = State{endOrSituation=maybe endOrSituation Left maybeEndState,..}  
-    where
-        (Right Situation{..}) = endOrSituation
-        x = Arena.getField player
-        maybeEndState = listToMaybe . mconcat $
-                [ [ELost|Map.member player monsters]
-                , [EWon|Set.member HasGoal x]
-                , [ELost|Set.member HasTrap x]
-                ]
+playerTriggersEvents = updateSituation $ \situation@Situation{..} ->
+    let fieldContains = Set.member `flip` Arena.getField player
+        warpedPlayer = List.head [w|w<-Arena.allWarps,w/=player]
+     in List.head $ mconcat
+            [ [Left EWon|fieldContains HasGoal]
+            , [Left ELost|fieldContains HasTrap]
+            , [Right situation{player=warpedPlayer}|fieldContains HasWarp]
+            , [Right Situation{..}]
+            ]
+
+evalPlayerMonsterSituation = updateSituation $ \situation@Situation{..} ->
+    if player `Map.member` monsters then Left ELost else Right situation
 
 runSteps :: (?arena :: Arena) => State -> [State]
 runSteps state = do
     d<-[minBound..maxBound::Direction]
     (Just s)<-[playerMoves d state]
-    return $ evalPlayerSituation . runMonsterStep . evalPlayerSituation . maybeWarpPlayer . evalPlayerSituation $ s
+    return $ evalPlayerMonsterSituation . runMonsterStep . evalPlayerMonsterSituation . playerTriggersEvents . evalPlayerMonsterSituation $ s
 
 solveGame :: Arena -> State
 solveGame arena = List.head [s|s@(State {endOrSituation=Left e})<-states, isDesiredEndState e]

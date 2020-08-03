@@ -14,7 +14,8 @@
 module State (
     Path(), emptyPath, addToPath, 
     EndState(..), isDesiredEndState,
-    State(..), startState, playerMoves, walledStep,
+    State(..), startState, playerMoves, updateSituation,
+    walledStep,
     StateDistinction, stateDistinction
 ) where
 
@@ -64,6 +65,9 @@ startState = State {path=Path_[], endOrSituation = Right startSituation }
         player :: Pos
         (player:_) = [p|(p,f)<-Map.toList allFields, StartPosPlayer `Set.member` f]
 
+
+updateSituation :: (Situation -> Either EndState Situation) -> State -> State
+updateSituation f s@State{endOrSituation = Right situation} = s{endOrSituation = f situation}
 
 
 walledStep :: (?arena :: Arena) => Pos -> Direction -> Maybe Pos
