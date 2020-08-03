@@ -51,7 +51,7 @@ runMonsterSteps situation@Situation{..}
     | not (List.null unknowns) = Left (EUnknown unknowns)
     | otherwise = runMonsterSteps $ Situation{monsters=newmonsters,..}
     where
-        sitting :: [(Pos,((Rank,MonsterState),Moved))]
+        sitting, moved :: [(Pos,((Rank,MonsterState),Moved))]
         sitting = [ (pos,(rm,False)) | x@(pos,rm@(_,WaitRounds _)) <- Map.toList monsters]
         moved = [ (newpos,((r,StepsToGo (s-1)),newpos/=oldpos))
                 | (oldpos,(r,StepsToGo s)) <- Map.toList monsters
@@ -64,18 +64,18 @@ runMonsterSteps situation@Situation{..}
         triggerMonsterEvent pos (Right ((r,StepsToGo 0),_)) = (r,WaitRounds 0)
         triggerMonsterEvent pos (Right (rm,_)) = rm
 
-playerTriggersEvents situation@Situation{..} =
-    let fieldContains = Set.member `flip` Arena.getField player
+playerTriggersEvents situation@Situation{..}
+    | fieldContains HasGoal = Left EWon
+    | fieldContains HasTrap = Left ELost
+    | fieldContains HasWarp = Right situation{player=warpedPlayer}
+    | otherwise = Right situation
+    where
+        fieldContains = Set.member `flip` Arena.getField player
         warpedPlayer = List.head [w|w<-Arena.allWarps,w/=player]
-     in List.head $ mconcat
-            [ [Left EWon|fieldContains HasGoal]
-            , [Left ELost|fieldContains HasTrap]
-            , [Right situation{player=warpedPlayer}|fieldContains HasWarp]
-            , [Right Situation{..}]
-            ]
 
-evalPlayerMonsterSituation situation@Situation{..} =
-    if player `Map.member` monsters then Left ELost else Right situation
+evalPlayerMonsterSituation situation@Situation{..}
+    | player `Map.member` monsters = Left ELost
+    | otherwise = Right situation
 
 runSteps :: (?arena :: Arena) => State -> [State]
 runSteps state0 = do
