@@ -44,17 +44,74 @@ data Arena = Arena_
     }
     deriving (Eq,Ord)
 
-showField1 f = if Wall North `Set.member` f then "--+" else "  +"
-showField2 f = (if StartPosMonster Rank2 `Set.member` f then "2" else if StartPosMonster Rank3 `Set.member` f then "3" else if StartPosPlayer `Set.member` f then "p" else " ") ++ (if HasTrap `Set.member` f then "X" else if HasGoal `Set.member` f then "g" else if HasWarp `Set.member` f then "*" else " ") ++ (if Wall East `Set.member` f then "|" else " ")
+hasWall :: Direction -> Field -> Bool
+hasWall = Set.member . Wall
+
+showNorthArenaWall, showSouthArenaWall :: [Field] -> String
+showNorthArenaWall fs = '┏':mconcat[if hasWall East f then "━━┳" else "━━━" |f<-init fs]++"━━┓"
+showSouthArenaWall fs = '┗':mconcat[if hasWall East f then "━━┻" else "━━━" |f<-init fs]++"━━┛"
+showHorizArenaWall :: [Field] -> [Field] -> String
+showHorizArenaWall above below = (if hasWall North $ head below then '┣' else '┃'):mconcat
+ [ [ "  ·" -- "    "
+   , "  ╺" -- "   →"
+   , "  ╻" -- "  ↓ "
+   , "  ┏" -- "  ↓→"
+   , "  ╹" -- " ↑  "
+   , "  ┗" -- " ↑ →"
+   , "  ┃" -- " ↑↓ "
+   , "  ┣" -- " ↑↓→"
+   , "━━╸" -- "←   "
+   , "━━━" -- "←  →"
+   , "━━┓" -- "← ↓ "
+   , "━━┳" -- "← ↓→"
+   , "━━┛" -- "←↑  "
+   , "━━┻" -- "←↑ →"
+   , "━━┫" -- "←↑↓ "
+   , "━━╋" -- "←↑↓→"
+   ]!!(w+n+s+e)
+ | (a,b)<-above `zip` (tail below ++ [Set.singleton $ Wall West])
+ , let w=if hasWall South a then 8 else 0
+ , let n=if hasWall East a then 4 else 0
+ , let s=if hasWall West b then 2 else 0
+ , let e=if hasWall North b then 1 else 0
+ ]
+
+showArenaStride fs = '┃':mconcat[ showFieldContent f ++ if hasWall East f then "┃" else " " | f<-fs ]
+
+showFieldContent f = fmap (head . mconcat)
+    [ [ ['X'|HasTrap `Set.member` f]
+      , ['g'|HasGoal `Set.member` f]
+      , ['*'|HasWarp `Set.member` f]
+      , [' ']
+      ]
+    , [ ['2'|StartPosMonster Rank2 `Set.member` f]
+      , ['3'|StartPosMonster Rank3 `Set.member` f]
+      , ['p'|StartPosPlayer `Set.member` f]
+      , [' ']
+      ]
+    ]
+
+-- ┄┄┅┅┊┋
+-- ━┃┏┓┗┛┣┫┳┻╋╸╹╺╻·
 
 instance Show Arena where
-    show Arena_{..} = "\n" ++ intercalate "\n" lines' ++ "\n"
+    show Arena_{..} = "\n" ++ intercalate "\n" lines ++ "\n"
         where
-            lines' = lines ++ [head lines]
-            lines = mconcat $ Map.elems $
-                        fmap (\x->zipWith(++)[" +"," |"][x>>=showField1,x>>=showField2]) $
-                        fmap (fmap snd . List.sortOn fst) $
-                        Map.fromListWith(++)[(y,[(x,f)])|(Pos x y,f) <- Map.toList fields]
+            --lines' = lines ++ [head lines]
+            --lines = mconcat $ 
+            --            fmap (\x->zipWith(++)[" ┣"," ┃"][x>>=showField1,x>>=showField2]) $
+            --                fs
+            rows = fmap showArenaStride fs
+            inbetween = zipWith showHorizArenaWall fs (tail fs)
+            no = showNorthArenaWall (head fs)
+            so = showSouthArenaWall (last fs)
+            lines = no:mconcat(zipWith(\a b->[a,b])rows(inbetween++[so]))
+            
+
+            fs :: [[Field]]
+            fs = fmap (fmap snd . List.sortOn fst) $
+                    Map.elems . Map.fromListWith(++) $
+                    [(y,[(x,f)])|(Pos x y,f) <- Map.toList fields]
 
 
 newtype Game = Game [String]
