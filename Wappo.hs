@@ -55,7 +55,7 @@ runMonsterSteps situation@Situation{..}
         sitting = [ (pos,(rm,False)) | x@(pos,rm@(_,WaitRounds _)) <- Map.toList monsters]
         moved = [ (newpos,((r,StepsToGo (s-1)),newpos/=oldpos))
                 | (oldpos,(r,StepsToGo s)) <- Map.toList monsters
-                , let newpos = List.head $ [np|(walledStep oldpos->Just np)<-directionMonsterToPlayer oldpos player] ++ [oldpos]
+                , let newpos = List.head $ [np|(walledStep situation oldpos->Just np)<-directionMonsterToPlayer oldpos player] ++ [oldpos]
                 ]
         joined = Map.fromListWith joinMonsters $ fmap (fmap Right) $ sitting++moved
         unknowns = intercalate " " [s|Left s <- Map.elems joined]
@@ -68,9 +68,14 @@ playerTriggersEvents situation@Situation{..}
     | fieldContains HasGoal = Left EWon
     | fieldContains HasTrap = Left ELost
     | fieldContains HasWarp = Right situation{player=warpedPlayer}
+    | hasSwitch = Right (flipSwitch switch situation)
     | otherwise = Right situation
     where
-        fieldContains = Set.member `flip` Arena.getField player
+        playerfield = Arena.getField player
+        fieldContains = Set.member `flip` playerfield
+        switches = [d|HasSwitch d<-Set.toList playerfield]
+        hasSwitch = switches/=[]
+        [switch] = switches
         warpedPlayer = List.head [w|w<-Arena.allWarps,w/=player]
 
 evalPlayerMonsterSituation situation@Situation{..}
@@ -105,12 +110,12 @@ solveGame' arena = List.reverse $ List.head [s|s<-states, hasDesiredEndState (he
 
 inferno14 = Game
     ["  2  __ "
-    ," *Ig I_*  "
+    ," *IG I_*  "
     ," I_ _I "
     ,"__ II I"
     ,"     LI"
     ," I_X 2  I"
-    ,"    p   "
+    ,"    P   "
     ]
 inferno15 = Game
     ["      X "
@@ -118,12 +123,18 @@ inferno15 = Game
     ,"    II "
     ," XI*I _ I"
     ,"__   _ "
-    ," gI II_* "
-    ,"  2    p "
+    ," GI II_* "
+    ,"  2    P "
+    ]
+inferno16 = Game
+    [" Izza  Iza2I"
+    ," 2IbP zzb Id "
+    ," I  L_zc"
+    ," Izzc  zzdI G"
     ]
 classic149 = Game
-    [" 2 g_ X  "
-    ," 2_I  p "
+    [" 2 G_ X  "
+    ," 2_I  P "
     ,"  I   "
     ,"   _  "
     ,"_   _IX"
@@ -132,8 +143,9 @@ classic149 = Game
     ,"      "
     ]
 
+
 readGame :: IO Arena
-readGame = return $ getArena classic149
+readGame = return $ getArena inferno16
 
 main :: IO ()
 main = do

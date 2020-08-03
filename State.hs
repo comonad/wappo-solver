@@ -66,25 +66,29 @@ startState = State {path=Path_[], endOrSituation = Right startSituation }
         monsters = fmap (,WaitRounds 0) $ Map.mapMaybe getStartPosMonster $ allFields
         player :: Pos
         (player:_) = [p|(p,f)<-Map.toList allFields, StartPosPlayer `Set.member` f]
+        doorStates = Map.fromList[(doorId d,isClosed d)|fs<-Map.elems allFields, (HasDoor _ d)<-Set.toList fs]
 
 
 updateSituation :: (Situation -> Either EndState Situation) -> State -> State
 updateSituation f s@State{endOrSituation = Right situation} = s{endOrSituation = f situation}
 
-
-walledStep :: (?arena :: Arena) => Pos -> Direction -> Maybe Pos
-walledStep pos dir = if Wall dir `Set.member` Arena.getField pos
-                      then Nothing
-                      else Just (applyDir dir pos)
+walledStep :: (?arena :: Arena) => Situation -> Pos -> Direction -> Maybe Pos
+walledStep Situation{doorStates} pos dir = do
+    let f = Arena.getField pos
+    when (Wall dir `Set.member` f) $ Nothing
+    let md = fmap  doorId $ hasDoor dir f
+    let iscloseddoor = maybe False (doorStates Map.!) md
+    when (iscloseddoor) $ Nothing    
+    Just (applyDir dir pos)
 
 
 playerMoves :: (?arena :: Arena) => Direction -> State -> Maybe State
 playerMoves d state = do
     (State {path, endOrSituation=Right Situation{..}}) <- return state
-    player' <- walledStep player d
+    player' <- walledStep Situation{..} player d
     let path' = addToPath d path
     let monsters' = fmap prepareMonsterStep monsters
-    return $ State {path=path',endOrSituation=Right Situation{monsters=monsters',player=player'}}
+    return $ State {path=path',endOrSituation=Right Situation{monsters=monsters',player=player',doorStates}}
 
 prepareMonsterStep :: (Rank,MonsterState) -> (Rank,MonsterState)
 prepareMonsterStep (!r,WaitRounds 0) = (r,StepsToGo $ case r of {Rank2->2 ; Rank3->3})
@@ -104,7 +108,7 @@ packSituation :: Situation -> Integer
 packSituation Situation{..} = read $ packPos player ++ mconcat
                                         [packPos p++show r++show n
                                         |(p,(fromEnum->r,WaitRounds n))<-Map.toList monsters
-                                        ] 
+                                        ] ++ [if b then '1' else '0'|b<-Map.elems doorStates]
 packPos (Pos x y) = show x ++ show y
 
 
