@@ -52,7 +52,7 @@ instance Show Arena where
         where
             lines' = lines ++ [head lines]
             lines = mconcat $ Map.elems $
-                        fmap (\x->[x>>=showField1,x>>=showField2]) $
+                        fmap (\x->zipWith(++)[" +"," |"][x>>=showField1,x>>=showField2]) $
                         fmap (fmap snd . List.sortOn fst) $
                         Map.fromListWith(++)[(y,[(x,f)])|(Pos x y,f) <- Map.toList fields]
 
