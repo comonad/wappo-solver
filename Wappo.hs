@@ -28,21 +28,10 @@ import View
 
 
 
-prepareMonsterStep :: (Rank,MonsterState) -> (Rank,MonsterState)
-prepareMonsterStep (!r,WaitRounds 0) = (r,StepsToGo $ case r of {Rank2->2 ; Rank3->3})
-prepareMonsterStep (!r,WaitRounds n) = (r,WaitRounds (n-1))
-prepareMonsterStep x = error $ "prepareMonsterStep " ++ show x
 
 
 
 
-
-
-
-walledStep :: (?arena :: Arena) => Pos -> Direction -> Maybe Pos
-walledStep pos dir = if Wall dir `Set.member` Arena.getField pos
-                      then Nothing
-                      else Just (applyDir dir pos)
 
 directionMonsterToPlayer :: Pos -> Pos -> [Direction]
 directionMonsterToPlayer (Pos mx my) (Pos px py)
@@ -94,18 +83,11 @@ evalPlayerSituation State{..} = State{endOrSituation=maybe endOrSituation Left m
                 , [ELost|Set.member HasTrap x]
                 ]
 
-
 runSteps :: (?arena :: Arena) => State -> [State]
-runSteps (State { endOrSituation=Left _}) = []
-runSteps (State {path, endOrSituation=Right Situation{..}}) = do
+runSteps state = do
     d<-[minBound..maxBound::Direction]
-    Just player' <-[walledStep player d]
-    let path' = addToPath d path
-    
-    let monsters' = fmap prepareMonsterStep monsters
-    return $ evalPlayerSituation . runMonsterStep . evalPlayerSituation . maybeWarpPlayer . evalPlayerSituation
-           $ State {path=path',endOrSituation=Right Situation{monsters=monsters',player=player'}}
-
+    (Just s)<-[playerMoves d state]
+    return $ evalPlayerSituation . runMonsterStep . evalPlayerSituation . maybeWarpPlayer . evalPlayerSituation $ s
 
 solveGame :: Arena -> State
 solveGame arena = List.head [s|s@(State {endOrSituation=Left e})<-states, isDesiredEndState e]

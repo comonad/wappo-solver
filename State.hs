@@ -14,7 +14,7 @@
 module State (
     Path(), emptyPath, addToPath, 
     EndState(..), isDesiredEndState,
-    State(..), startState,
+    State(..), startState, playerMoves, walledStep,
     StateDistinction, stateDistinction
 ) where
 
@@ -63,6 +63,29 @@ startState = State {path=Path_[], endOrSituation = Right startSituation }
         monsters = fmap (,WaitRounds 0) $ Map.mapMaybe getStartPosMonster $ allFields
         player :: Pos
         (player:_) = [p|(p,f)<-Map.toList allFields, StartPosPlayer `Set.member` f]
+
+
+
+walledStep :: (?arena :: Arena) => Pos -> Direction -> Maybe Pos
+walledStep pos dir = if Wall dir `Set.member` Arena.getField pos
+                      then Nothing
+                      else Just (applyDir dir pos)
+
+
+playerMoves :: (?arena :: Arena) => Direction -> State -> Maybe State
+playerMoves d state = do
+    (State {path, endOrSituation=Right Situation{..}}) <- return state
+    player' <- walledStep player d
+    let path' = addToPath d path
+    let monsters' = fmap prepareMonsterStep monsters
+    return $ State {path=path',endOrSituation=Right Situation{monsters=monsters',player=player'}}
+
+prepareMonsterStep :: (Rank,MonsterState) -> (Rank,MonsterState)
+prepareMonsterStep (!r,WaitRounds 0) = (r,StepsToGo $ case r of {Rank2->2 ; Rank3->3})
+prepareMonsterStep (!r,WaitRounds n) = (r,WaitRounds (n-1))
+prepareMonsterStep x = error $ "prepareMonsterStep " ++ show x
+
+
 
 
 
