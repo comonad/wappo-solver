@@ -92,11 +92,11 @@ runSteps state0 = do
 
 
 solveGame :: Arena -> State
-solveGame arena = List.head [s|s@(State {endOrSituation=Left e})<-states, isDesiredEndState e]
+solveGame arena = List.head [s|s<-states, hasDesiredEndState s]
     where
         states = distinctOn stateDistinction $ let ?arena = arena in startState : (states >>= runSteps)
 solveGame' :: Arena -> [State]
-solveGame' arena = List.reverse $ List.head $ [s|s@(State {endOrSituation=Left e}:_)<-states, isDesiredEndState e]
+solveGame' arena = List.reverse $ List.head [s|s<-states, hasDesiredEndState (head s)]
     where
         states = distinctOn (stateDistinction.head) $ let ?arena = arena in [startState] : [n:ss|ss@(s:_)<-states, n<-runSteps s]
 

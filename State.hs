@@ -13,8 +13,8 @@
 
 module State (
     Path(), emptyPath, addToPath, 
-    EndState(..), isDesiredEndState,
-    State(..), startState, playerMoves, updateSituation,
+    EndState(..),
+    State(..), startState, playerMoves, updateSituation, hasDesiredEndState,
     walledStep,
     StateDistinction, stateDistinction
 ) where
@@ -48,7 +48,9 @@ isDesiredEndState :: EndState -> Bool
 isDesiredEndState ELost = False
 isDesiredEndState _ = True
 
-
+hasDesiredEndState :: State -> Bool
+hasDesiredEndState State {endOrSituation = Left(isDesiredEndState->True)} = True
+hasDesiredEndState _ = False
 
 data State = State { path :: !Path
                    , endOrSituation :: !(Either EndState Situation)
