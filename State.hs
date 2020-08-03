@@ -11,7 +11,12 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 
-module State  where
+module State (
+    Path(), emptyPath, addToPath, 
+    EndState(..), isDesiredEndState,
+    State(..), startState,
+    StateDistinction, stateDistinction
+) where
 
 import Control.Monad.RWS
 
@@ -61,9 +66,11 @@ startState = State {path=Path_[], endOrSituation = Right startSituation }
 
 
 
+newtype StateDistinction = StateDistinction_ (Either EndState Integer)
+    deriving (Eq,Ord)
+stateDistinction :: State -> StateDistinction
+stateDistinction State{..} = StateDistinction_ $ fmap packSituation endOrSituation
 
-stateDistinction :: State -> Either EndState Integer
-stateDistinction State{..} = fmap packSituation endOrSituation
 packSituation :: Situation -> Integer
 packSituation Situation{..} = read $ packPos player ++ mconcat
                                         [packPos p++show r++show n

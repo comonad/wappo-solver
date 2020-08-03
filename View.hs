@@ -11,7 +11,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 
-module View where
+module View (
+    View(), view
+) where
 
 import Control.Monad.RWS
 
