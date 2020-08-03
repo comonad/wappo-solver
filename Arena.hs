@@ -48,26 +48,26 @@ hasWall :: Direction -> Field -> Bool
 hasWall = Set.member . Wall
 
 showNorthArenaWall, showSouthArenaWall :: [Field] -> String
-showNorthArenaWall fs = '┏':mconcat[if hasWall East f then "━━┳" else "━━━" |f<-init fs]++"━━┓"
-showSouthArenaWall fs = '┗':mconcat[if hasWall East f then "━━┻" else "━━━" |f<-init fs]++"━━┛"
+showNorthArenaWall fs = '┏':mconcat[if hasWall East f then "━━━┳" else "━━━━" |f<-init fs]++"━━━┓"
+showSouthArenaWall fs = '┗':mconcat[if hasWall East f then "━━━┻" else "━━━━" |f<-init fs]++"━━━┛"
 showHorizArenaWall :: [Field] -> [Field] -> String
 showHorizArenaWall above below = (if hasWall North $ head below then '┣' else '┃'):mconcat
- [ [ "  ·" -- "    "
-   , "  ╺" -- "   →"
-   , "  ╻" -- "  ↓ "
-   , "  ┏" -- "  ↓→"
-   , "  ╹" -- " ↑  "
-   , "  ┗" -- " ↑ →"
-   , "  ┃" -- " ↑↓ "
-   , "  ┣" -- " ↑↓→"
-   , "━━╸" -- "←   "
-   , "━━━" -- "←  →"
-   , "━━┓" -- "← ↓ "
-   , "━━┳" -- "← ↓→"
-   , "━━┛" -- "←↑  "
-   , "━━┻" -- "←↑ →"
-   , "━━┫" -- "←↑↓ "
-   , "━━╋" -- "←↑↓→"
+ [ [ "   ·" -- "    "
+   , "   ╺" -- "   →"
+   , "   ╻" -- "  ↓ "
+   , "   ┏" -- "  ↓→"
+   , "   ╹" -- " ↑  "
+   , "   ┗" -- " ↑ →"
+   , "   ┃" -- " ↑↓ "
+   , "   ┣" -- " ↑↓→"
+   , "━━━╸" -- "←   "
+   , "━━━━" -- "←  →"
+   , "━━━┓" -- "← ↓ "
+   , "━━━┳" -- "← ↓→"
+   , "━━━┛" -- "←↑  "
+   , "━━━┻" -- "←↑ →"
+   , "━━━┫" -- "←↑↓ "
+   , "━━━╋" -- "←↑↓→"
    ]!!(w+n+s+e)
  | (a,b)<-above `zip` (tail below ++ [Set.singleton $ Wall West])
  , let w=if hasWall South a then 8 else 0
@@ -78,19 +78,19 @@ showHorizArenaWall above below = (if hasWall North $ head below then '┣' else 
 
 showArenaStride fs = '┃':mconcat[ showFieldContent f ++ if hasWall East f then "┃" else " " | f<-fs ]
 
-showFieldContent f = fmap (head . mconcat)
-    [ [ ['X'|HasTrap `Set.member` f]
-      , ['g'|HasGoal `Set.member` f]
-      , ['*'|HasWarp `Set.member` f]
-      , [' ']
+showFieldContent f = mconcat $ fmap (head . mconcat)
+    [ [ ["⛝"|HasTrap `Set.member` f]
+      , ["⚐"|HasGoal `Set.member` f]
+      , ["⚝"|HasWarp `Set.member` f]
+      , [" "]
       ]
-    , [ ['2'|StartPosMonster Rank2 `Set.member` f]
-      , ['3'|StartPosMonster Rank3 `Set.member` f]
-      , ['p'|StartPosPlayer `Set.member` f]
-      , [' ']
+    , [ ["🙋"|StartPosMonster Rank2 `Set.member` f]
+      , ["🙌"|StartPosMonster Rank3 `Set.member` f]
+      , ["🛉 "|StartPosPlayer `Set.member` f]
+      , ["  "]
       ]
     ]
-
+-- ⊙
 -- ┄┄┅┅┊┋
 -- ━┃┏┓┗┛┣┫┳┻╋╸╹╺╻·
 
