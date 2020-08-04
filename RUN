@@ -1,1 +1,1 @@
-ghci -package mtl Wappo.hs
+ghc -O2 -package mtl Wappo.hs && ./Wappo
