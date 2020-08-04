@@ -142,6 +142,24 @@ inferno46 = Game
     ,"  I  *"
     ," zza    "
     ]
+inferno55 = Game
+    ["_____IG"
+    ,"  *    "
+    ," 2  P  _"
+    ,"_X   L "
+    ,"_     "
+    ,"    X * "
+    ," 2 II I"
+    ]
+inferno57 = Game
+    ["  *    2"
+    ,"_I  _ "
+    ,"      "
+    ,"_IL  * X"
+    ,"  I_  "
+    ," _2___X_P"
+    ," GI    "
+    ]
 
 classic149 = Game
     [" 2 G_ X  "
@@ -156,7 +174,7 @@ classic149 = Game
 
 
 readGame :: IO Arena
-readGame = return $ getArena inferno46
+readGame = return $ getArena inferno57
 
 main :: IO ()
 main = do
