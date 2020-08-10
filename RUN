@@ -1,1 +1,1 @@
-ghc -O2 -package mtl Wappo.hs && ./Wappo
+cabal v1-run

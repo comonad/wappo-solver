@@ -1,1 +1,3 @@
-ghc -O2 -package mtl Wappo.hs
+#/bin/bash
+mkdir -p out
+cabal v1-install --prefix="$PWD/out"

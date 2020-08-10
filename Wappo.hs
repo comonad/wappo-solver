@@ -11,7 +11,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 
-module Main where
+module Wappo where
 
 import Control.Monad
 import Control.Monad.RWS

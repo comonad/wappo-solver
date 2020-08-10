@@ -1,1 +1,1 @@
-ghci -package mtl Wappo.hs
+cabal v1-repl
