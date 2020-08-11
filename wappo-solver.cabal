@@ -24,5 +24,7 @@ executable wappo-solver
   -- other-extensions:
   build-depends:       base >=4.12 && <4.13
                       ,mtl,containers
+                      ,diagrams
+                      ,diagrams-postscript
   -- hs-source-dirs:
   default-language:    Haskell2010
