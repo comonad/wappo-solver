@@ -1,1 +1,2 @@
-cabal v1-run
+#!/bin/bash
+cabal v1-run --ghc-option=-Wno-missing-home-modules  -- "$@"

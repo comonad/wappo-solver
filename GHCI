@@ -1,1 +1,2 @@
+#!/bin/bash
 cabal v1-repl
