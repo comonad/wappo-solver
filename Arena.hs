@@ -84,7 +84,7 @@ showHorizArenaWall above below = (if hasWall North $ head below then '┣' else 
  ]
 
 wallOrDoorNr :: Direction -> Field -> Int
-wallOrDoorNr dir f = case (hasWall dir f,fmap isClosed $ hasDoor dir f) of 
+wallOrDoorNr dir f = case (hasWall dir f,fmap isClosed $ hasDoor dir f) of
                 (True,_) -> 1
                 (_,Just True) -> 3
                 (_,Just False) -> 2
@@ -105,7 +105,7 @@ showFieldContent f = mconcat $ fmap (head . mconcat)
       , ["  "]
       ]
     ]
--- ⊙
+-- ⊙⚝⚐⛝🙋🙌🛉
 -- ┄┄┅┅┊┋
 -- ━┃┏┓┗┛┣┫┳┻╋╸╹╺╻·
 
@@ -113,7 +113,7 @@ instance Show Arena where
     show Arena_{..} = "\n" ++ intercalate "\n" lines ++ "\n"
         where
             --lines' = lines ++ [head lines]
-            --lines = mconcat $ 
+            --lines = mconcat $
             --            fmap (\x->zipWith(++)[" ┣"," ┃"][x>>=showField1,x>>=showField2]) $
             --                fs
             rows = fmap showArenaStride fs
@@ -121,7 +121,7 @@ instance Show Arena where
             no = showNorthArenaWall (head fs)
             so = showSouthArenaWall (last fs)
             lines = no:mconcat(zipWith(\a b->[a,b])rows(inbetween++[so]))
-            
+
 
             fs :: [[Field]]
             fs = fmap (fmap snd . List.sortOn fst) $
@@ -147,7 +147,7 @@ getArena (Game g) = Arena_ {fields, warps}
              ,let mkdoor d i = HasDoor d$Door{isClosed=Wall d`Set.member`p,doorId=i}
              ,let pp = [f x|(f,x)<-zip[mkdoor West,mkdoor South,HasSwitch] doorids,x/=DoorId 'z']
              ,let nowalls = p Set.\\ Set.fromList[Wall d|(HasDoor d _)<-pp]
-             ,let sp = Set.fromList pp `Set.union` nowalls 
+             ,let sp = Set.fromList pp `Set.union` nowalls
              ]
         fields0 = Map.fromListWith(Set.union) ps
         hasneighbourwall :: Direction -> Pos -> Bool
@@ -175,7 +175,7 @@ updateDoor ds f = Set.map u f
     where
         u (HasDoor di Door{..}) = HasDoor di Door{isClosed=ds Map.! doorId,..}
         u x = x
-    
+
 
 
 updateArena :: Situation -> Arena -> Arena

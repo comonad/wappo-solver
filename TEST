@@ -1,2 +1,3 @@
 #!/bin/bash
-. RUN -o test.ps -w 10 "$@"
+#. RUN -o test.ps -w 10 "$@"
+. RUN -o test.svg -w 1000 "$@"
